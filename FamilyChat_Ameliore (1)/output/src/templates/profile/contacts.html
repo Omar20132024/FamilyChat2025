@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Contacts</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="{{ url_for('chat.dashboard') }}" class="menu-item">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('group.list_groups') }}" class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </a>
+                <a href="{{ url_for('user.contacts') }}" class="menu-item active">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </a>
+                <a href="{{ url_for('user.profile') }}" class="menu-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </a>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="contacts-container">
+                <div class="contacts-header">
+                    <h2>Mes Contacts</h2>
+                    <div class="contacts-actions">
+                        <div class="search-box">
+                            <input type="text" id="contact-search" placeholder="Rechercher un contact...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <button id="add-contact-btn" class="btn primary">
+                            <i class="fas fa-user-plus"></i> Ajouter un contact
+                        </button>
+                    </div>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="contacts-list">
+                    {% for contact in contacts %}
+                    <div class="contact-card">
+                        <img src="{{ url_for('static', filename='images/profiles/' + contact.contact.profile_picture) }}" alt="Avatar" class="contact-avatar">
+                        <div class="contact-name">{{ contact.contact.username }}</div>
+                        <div class="contact-status">
+                            {% if contact.contact.is_online() %}
+                                <span class="status-indicator online"></span> En ligne
+                            {% else %}
+                                <span class="status-indicator offline"></span> Hors ligne
+                            {% endif %}
+                        </div>
+                        <div class="contact-actions">
+                            <a href="{{ url_for('message.chat', receiver_id=contact.contact.id) }}" class="btn primary contact-btn">
+                                <i class="fas fa-comment"></i> Message
+                            </a>
+                            <form action="{{ url_for('user.remove_contact', contact_id=contact.id) }}" method="POST" class="inline-form">
+                                <button type="submit" class="btn secondary contact-btn" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce contact ?')">
+                                    <i class="fas fa-user-minus"></i> Supprimer
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not contacts %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Vous n'avez pas encore de contacts</h3>
+                        <p>Ajoutez des contacts pour commencer à discuter avec vos amis et votre famille.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Modal d'ajout de contact -->
+            <div id="add-contact-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Ajouter un contact</h3>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="search-box">
+                            <input type="text" id="user-search" placeholder="Rechercher un utilisateur...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div id="search-results" class="search-results">
+                            <!-- Les résultats de recherche seront affichés ici -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion du modal d'ajout de contact
+        const modal = document.getElementById('add-contact-modal');
+        const addContactBtn = document.getElementById('add-contact-btn');
+        const closeBtn = document.querySelector('.close');
+        const userSearchInput = document.getElementById('user-search');
+        const searchResults = document.getElementById('search-results');
+        
+        // Ouvrir le modal
+        addContactBtn.addEventListener('click', () => {
+            modal.style.display = 'block';
+        });
+        
+        // Fermer le modal
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        // Fermer le modal en cliquant à l'extérieur
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Recherche d'utilisateurs
+        userSearchInput.addEventListener('input', () => {
+            const query = userSearchInput.value.trim();
+            
+            if (query.length >= 3) {
+                fetch(`{{ url_for('user.search_users') }}?query=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchResults.innerHTML = '';
+                        
+                        if (data.length === 0) {
+                            searchResults.innerHTML = '<div class="no-results">Aucun utilisateur trouvé</div>';
+                            return;
+                        }
+                        
+                        data.forEach(user => {
+                            const userElement = document.createElement('div');
+                            userElement.className = 'search-result-item';
+                            
+                            userElement.innerHTML = `
+                                <img src="{{ url_for('static', filename='images/profiles/') }}${user.profile_picture}" alt="Avatar" class="result-avatar">
+                                <div class="result-info">
+                                    <div class="result-name">${user.username}</div>
+                                </div>
+                                ${user.is_contact 
+                                    ? '<button class="btn secondary" disabled>Déjà ajouté</button>'
+                                    : `<form action="{{ url_for('user.add_contact', user_id='') }}${user.id}" method="POST">
+                                        <button type="submit" class="btn primary">Ajouter</button>
+                                       </form>`
+                                }
+                            `;
+                            
+                            searchResults.appendChild(userElement);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        searchResults.innerHTML = '<div class="no-results">Erreur lors de la recherche</div>';
+                    });
+            } else {
+                searchResults.innerHTML = '';
+            }
+        });
+        
+        // Filtrer les contacts existants
+        const contactSearchInput = document.getElementById('contact-search');
+        const contactCards = document.querySelectorAll('.contact-card');
+        
+        contactSearchInput.addEventListener('input', () => {
+            const query = contactSearchInput.value.toLowerCase().trim();
+            
+            contactCards.forEach(card => {
+                const name = card.querySelector('.contact-name').textContent.toLowerCase();
+                
+                if (name.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

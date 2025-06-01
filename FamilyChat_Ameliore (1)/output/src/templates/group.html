@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Groupe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="{{ url_for('chat.dashboard') }}" class="menu-item">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('group.list_groups') }}" class="menu-item active">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </a>
+                <a href="{{ url_for('user.contacts') }}" class="menu-item">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </a>
+                <a href="{{ url_for('user.profile') }}" class="menu-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </a>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="chat-user-info">
+                    <div class="group-avatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="chat-user-name">{{ group.name }}</div>
+                        <div class="chat-user-status">
+                            {{ members|length }} membres
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    {% if is_admin %}
+                    <a href="{{ url_for('group.add_member', group_id=group.id) }}" class="chat-action-btn">
+                        <i class="fas fa-user-plus"></i>
+                    </a>
+                    {% endif %}
+                    <button class="chat-action-btn" id="show-members-btn">
+                        <i class="fas fa-users"></i>
+                    </button>
+                    <button class="chat-action-btn">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                {% for message in messages %}
+                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                    <div class="message-sender">{{ message.sender.username }}</div>
+                    <div class="message-content">{{ message.content }}</div>
+                    <div class="message-time">{{ message.created_at.strftime('%H:%M') }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="message-input" class="chat-input-field" placeholder="Tapez votre message...">
+                <button id="send-button" class="chat-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            
+            <!-- Modal des membres du groupe -->
+            <div id="members-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Membres du groupe</h3>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="members-list">
+                            {% for member in members %}
+                            <li class="member-item">
+                                <img src="{{ url_for('static', filename='images/profiles/' + member.user.profile_picture) }}" alt="Avatar" class="member-avatar">
+                                <div class="member-info">
+                                    <div class="member-name">{{ member.user.username }}</div>
+                                    <div class="member-role">
+                                        {% if member.is_admin %}
+                                        <span class="admin-badge">Admin</span>
+                                        {% endif %}
+                                        {% if member.user.id == group.creator_id %}
+                                        <span class="creator-badge">Créateur</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if is_admin and current_user.id != member.user.id and member.user.id != group.creator_id %}
+                                <form action="{{ url_for('group.remove_member', group_id=group.id, user_id=member.user.id) }}" method="POST" class="inline-form">
+                                    <button type="submit" class="btn danger member-btn" onclick="return confirm('Êtes-vous sûr de vouloir retirer ce membre du groupe ?')">
+                                        <i class="fas fa-user-minus"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Connexion WebSocket
+        const socket = io();
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        // ID du groupe
+        const groupId = {{ group.id }};
+        
+        // Fonction pour envoyer un message
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (content) {
+                // Envoyer le message au serveur via API
+                fetch('{{ url_for("message.send_message") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        group_id: groupId,
+                        content: content,
+                        is_group: true
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Effacer le champ de saisie
+                        messageInput.value = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+            }
+        }
+        
+        // Événement d'envoi de message
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Écouter les nouveaux messages de groupe
+        socket.on('new_group_message', function(data) {
+            // Vérifier si le message concerne ce groupe
+            if (data.group_id === groupId) {
+                // Créer l'élément de message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${data.sender_id === {{ current_user.id }} ? 'sent' : 'received'}`;
+                
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'message-sender';
+                senderDiv.textContent = data.sender_username;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = data.content;
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                const date = new Date(data.created_at);
+                timeDiv.textContent = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                messageDiv.appendChild(senderDiv);
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                // Ajouter le message à la conversation
+                chatMessages.appendChild(messageDiv);
+                
+                // Faire défiler vers le bas
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+        
+        // Gestion du modal des membres
+        const membersModal = document.getElementById('members-modal');
+        const showMembersBtn = document.getElementById('show-members-btn');
+        const closeBtn = document.querySelector('.close');
+        
+        // Ouvrir le modal
+        showMembersBtn.addEventListener('click', () => {
+            membersModal.style.display = 'block';
+        });
+        
+        // Fermer le modal
+        closeBtn.addEventListener('click', () => {
+            membersModal.style.display = 'none';
+        });
+        
+        // Fermer le modal en cliquant à l'extérieur
+        window.addEventListener('click', (event) => {
+            if (event.target === membersModal) {
+                membersModal.style.display = 'none';
+            }
+        });
+        
+        // Faire défiler vers le bas au chargement
+        window.onload = function() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+    </script>
+</body>
+</html>

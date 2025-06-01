@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Profil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="{{ url_for('chat.dashboard') }}" class="menu-item">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('group.list_groups') }}" class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </a>
+                <a href="{{ url_for('user.contacts') }}" class="menu-item">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </a>
+                <a href="{{ url_for('user.profile') }}" class="menu-item active">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </a>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="profile-avatar">
+                    <div class="profile-info">
+                        <h2>{{ current_user.username }}</h2>
+                        <div class="profile-status">
+                            {% if current_user.is_online() %}
+                                <span class="status-indicator online"></span> En ligne
+                            {% else %}
+                                <span class="status-indicator offline"></span> Hors ligne
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-tabs">
+                    <div class="profile-tab active" data-tab="edit-profile">Modifier le profil</div>
+                    <div class="profile-tab" data-tab="account-settings">Paramètres du compte</div>
+                </div>
+                
+                <div class="profile-content">
+                    <div class="tab-content active" id="edit-profile">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form action="{{ url_for('user.profile') }}" method="POST" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="username">Nom d'utilisateur</label>
+                                <input type="text" id="username" name="username" class="form-control" value="{{ current_user.username }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Adresse email</label>
+                                <input type="email" id="email" name="email" class="form-control" value="{{ current_user.email }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile_picture">Photo de profil</label>
+                                <input type="file" id="profile_picture" name="profile_picture" class="form-control">
+                                <small>Formats acceptés : JPG, PNG. Taille max : 2 Mo</small>
+                            </div>
+                            <button type="submit" class="btn primary">Enregistrer les modifications</button>
+                        </form>
+                    </div>
+                    
+                    <div class="tab-content" id="account-settings">
+                        <h3>Changer de mot de passe</h3>
+                        <form action="{{ url_for('user.change_password') }}" method="POST">
+                            <div class="form-group">
+                                <label for="current_password">Mot de passe actuel</label>
+                                <input type="password" id="current_password" name="current_password" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="new_password">Nouveau mot de passe</label>
+                                <input type="password" id="new_password" name="new_password" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm_password">Confirmer le nouveau mot de passe</label>
+                                <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn primary">Changer le mot de passe</button>
+                        </form>
+                        
+                        <div class="danger-zone">
+                            <h3>Zone de danger</h3>
+                            <p>Attention, cette action est irréversible.</p>
+                            <button class="btn danger" id="delete-account-btn">Supprimer mon compte</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestion des onglets
+        const tabs = document.querySelectorAll('.profile-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                // Désactiver tous les onglets et contenus
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Activer l'onglet et le contenu sélectionnés
+                tab.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // Confirmation de suppression de compte
+        const deleteAccountBtn = document.getElementById('delete-account-btn');
+        if (deleteAccountBtn) {
+            deleteAccountBtn.addEventListener('click', () => {
+                if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+                    window.location.href = "{{ url_for('user.delete_account') }}";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

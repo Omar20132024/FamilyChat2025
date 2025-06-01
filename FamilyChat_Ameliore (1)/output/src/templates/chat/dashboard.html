@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Tableau de bord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <div class="menu-item active">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </div>
+            </div>
+            
+            <div class="conversation-list">
+                <h3>Conversations récentes</h3>
+                
+                {% for contact in contacts %}
+                <div class="conversation-item">
+                    <img src="{{ url_for('static', filename='images/profiles/' + contact.contact.profile_picture) }}" alt="Avatar" class="conversation-avatar">
+                    <div class="conversation-info">
+                        <div class="conversation-name">{{ contact.contact.username }}</div>
+                        <div class="conversation-last-message">
+                            {% if contact.last_message %}
+                                {{ contact.last_message.content }}
+                            {% else %}
+                                Commencez une conversation
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="conversation-meta">
+                        <div class="conversation-time">
+                            {% if contact.last_message %}
+                                {{ contact.last_message.created_at.strftime('%H:%M') }}
+                            {% endif %}
+                        </div>
+                        {% if contact.unread_count > 0 %}
+                        <div class="unread-badge">{{ contact.unread_count }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not contacts %}
+                <div class="empty-state">
+                    <p>Vous n'avez pas encore de contacts.</p>
+                    <a href="{{ url_for('user.search_users') }}" class="btn primary">Ajouter des contacts</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="welcome-screen">
+                <div class="welcome-content">
+                    <img src="{{ url_for('static', filename='images/welcome.png') }}" alt="Welcome" class="welcome-image">
+                    <h2>Bienvenue sur FamilyChat, {{ current_user.username }} !</h2>
+                    <p>Sélectionnez une conversation pour commencer à discuter ou ajoutez de nouveaux contacts.</p>
+                    <div class="welcome-actions">
+                        <a href="{{ url_for('user.search_users') }}" class="btn primary">Rechercher des contacts</a>
+                        <a href="{{ url_for('group.create_group') }}" class="btn secondary">Créer un groupe</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

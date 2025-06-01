@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Conversation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <div class="menu-item active">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </div>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+            
+            <div class="conversation-list">
+                <h3>Conversations récentes</h3>
+                
+                {% for contact in contacts %}
+                <div class="conversation-item {% if contact.contact.id == receiver.id %}active{% endif %}">
+                    <img src="{{ url_for('static', filename='images/profiles/' + contact.contact.profile_picture) }}" alt="Avatar" class="conversation-avatar">
+                    <div class="conversation-info">
+                        <div class="conversation-name">{{ contact.contact.username }}</div>
+                        <div class="conversation-last-message">
+                            {% if contact.last_message %}
+                                {{ contact.last_message.content }}
+                            {% else %}
+                                Commencez une conversation
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="conversation-meta">
+                        <div class="conversation-time">
+                            {% if contact.last_message %}
+                                {{ contact.last_message.created_at.strftime('%H:%M') }}
+                            {% endif %}
+                        </div>
+                        {% if contact.unread_count > 0 %}
+                        <div class="unread-badge">{{ contact.unread_count }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="chat-user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + receiver.profile_picture) }}" alt="Avatar" class="chat-avatar">
+                    <div>
+                        <div class="chat-user-name">{{ receiver.username }}</div>
+                        <div class="chat-user-status">
+                            {% if receiver.is_online() %}
+                                <span class="status-indicator online"></span> En ligne
+                            {% else %}
+                                <span class="status-indicator offline"></span> Dernière connexion {{ receiver.last_seen.strftime('%d/%m/%Y à %H:%M') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="chat-action-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="chat-action-btn">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="chat-action-btn">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                {% for message in messages %}
+                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                    <div class="message-content">{{ message.content }}</div>
+                    <div class="message-time">{{ message.created_at.strftime('%H:%M') }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="message-input" class="chat-input-field" placeholder="Tapez votre message...">
+                <button id="send-button" class="chat-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Connexion WebSocket
+        const socket = io();
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        // ID du destinataire
+        const receiverId = {{ receiver.id }};
+        
+        // Fonction pour envoyer un message
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (content) {
+                // Envoyer le message au serveur via API
+                fetch('{{ url_for("message.send_message") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        receiver_id: receiverId,
+                        content: content,
+                        is_group: false
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Effacer le champ de saisie
+                        messageInput.value = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+            }
+        }
+        
+        // Événement d'envoi de message
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Écouter les nouveaux messages privés
+        socket.on('new_private_message', function(data) {
+            // Vérifier si le message concerne cette conversation
+            if ((data.sender_id === {{ current_user.id }} && data.receiver_id === receiverId) || 
+                (data.sender_id === receiverId && data.receiver_id === {{ current_user.id }})) {
+                
+                // Créer l'élément de message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${data.sender_id === {{ current_user.id }} ? 'sent' : 'received'}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = data.content;
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                const date = new Date(data.created_at);
+                timeDiv.textContent = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                // Ajouter le message à la conversation
+                chatMessages.appendChild(messageDiv);
+                
+                // Faire défiler vers le bas
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+        
+        // Faire défiler vers le bas au chargement
+        window.onload = function() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Accueil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="landing-container">
+        <header class="landing-header">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="FamilyChat Logo">
+                <h1>FamilyChat</h1>
+            </div>
+            <nav class="landing-nav">
+                <a href="{{ url_for('auth.login') }}" class="nav-btn">Connexion</a>
+                <a href="{{ url_for('auth.register') }}" class="nav-btn primary">Inscription</a>
+            </nav>
+        </header>
+
+        <main class="landing-main">
+            <section class="hero">
+                <div class="hero-content">
+                    <h2>Restez connecté avec votre famille et vos amis</h2>
+                    <p>FamilyChat est une application de messagerie simple et sécurisée qui vous permet de communiquer facilement avec vos proches, sans avoir besoin d'un numéro de téléphone.</p>
+                    <div class="cta-buttons">
+                        <a href="{{ url_for('auth.register') }}" class="btn primary">Commencer maintenant</a>
+                        <a href="#features" class="btn secondary">Découvrir les fonctionnalités</a>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="{{ url_for('static', filename='images/hero-image.png') }}" alt="FamilyChat App Preview">
+                </div>
+            </section>
+
+            <section id="features" class="features">
+                <h2>Fonctionnalités principales</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3>Inscription sans numéro</h3>
+                        <p>Créez votre compte avec seulement une adresse email et un mot de passe.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3>Messagerie instantanée</h3>
+                        <p>Échangez des messages en temps réel avec vos contacts.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Groupes de discussion</h3>
+                        <p>Créez des groupes pour discuter avec plusieurs personnes simultanément.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h3>Partage de médias</h3>
+                        <p>Partagez des images avec vos contacts et groupes.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="how-it-works">
+                <h2>Comment ça marche</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Créez votre compte</h3>
+                        <p>Inscrivez-vous avec votre adresse email et choisissez un nom d'utilisateur unique.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Ajoutez des contacts</h3>
+                        <p>Recherchez vos amis et votre famille par leur nom d'utilisateur et ajoutez-les à vos contacts.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Commencez à discuter</h3>
+                        <p>Envoyez des messages, créez des groupes et partagez des moments avec vos proches.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="landing-footer">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="FamilyChat Logo">
+                    <h3>FamilyChat</h3>
+                </div>
+                <div class="footer-links">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="{{ url_for('index') }}">Accueil</a></li>
+                        <li><a href="#features">Fonctionnalités</a></li>
+                        <li><a href="{{ url_for('auth.login') }}">Connexion</a></li>
+                        <li><a href="{{ url_for('auth.register') }}">Inscription</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>Contact</h4>
+                    <p>Pour toute question ou assistance, contactez-nous à <a href="mailto:support@familychat.com">support@familychat.com</a></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 FamilyChat. Tous droits réservés.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

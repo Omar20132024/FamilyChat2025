@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyChat - Groupes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <img src="{{ url_for('static', filename='images/profiles/' + current_user.profile_picture) }}" alt="Avatar" class="user-avatar">
+                    <span class="user-name">{{ current_user.username }}</span>
+                </div>
+                <div class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu">
+                <a href="{{ url_for('chat.dashboard') }}" class="menu-item">
+                    <i class="fas fa-comment"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="{{ url_for('group.list_groups') }}" class="menu-item active">
+                    <i class="fas fa-users"></i>
+                    <span>Groupes</span>
+                </a>
+                <a href="{{ url_for('user.contacts') }}" class="menu-item">
+                    <i class="fas fa-address-book"></i>
+                    <span>Contacts</span>
+                </a>
+                <a href="{{ url_for('user.profile') }}" class="menu-item">
+                    <i class="fas fa-user-circle"></i>
+                    <span>Profil</span>
+                </a>
+                <div class="menu-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Paramètres</span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="groups-container">
+                <div class="groups-header">
+                    <h2>Mes Groupes</h2>
+                    <a href="{{ url_for('group.create_group') }}" class="btn primary">
+                        <i class="fas fa-plus"></i> Créer un groupe
+                    </a>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="groups-list">
+                    {% for member in user_groups %}
+                    <div class="group-card">
+                        <div class="group-header">
+                            <div class="group-avatar">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="group-info">
+                                <div class="group-name">{{ member.group.name }}</div>
+                                <div class="group-members">{{ member.group.members.count() }} membres</div>
+                                <div class="group-creator">
+                                    Créé par {{ member.group.creator.username }}
+                                    {% if member.group.creator_id == current_user.id %}
+                                        (vous)
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="group-actions">
+                                <a href="{{ url_for('group.view', group_id=member.group.id) }}" class="btn primary group-btn">
+                                    <i class="fas fa-comments"></i> Ouvrir
+                                </a>
+                                {% if member.group.creator_id == current_user.id %}
+                                <form action="{{ url_for('group.delete_group', group_id=member.group.id) }}" method="POST" class="inline-form">
+                                    <button type="submit" class="btn danger group-btn" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?')">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('group.leave_group', group_id=member.group.id) }}" method="POST" class="inline-form">
+                                    <button type="submit" class="btn secondary group-btn" onclick="return confirm('Êtes-vous sûr de vouloir quitter ce groupe ?')">
+                                        <i class="fas fa-sign-out-alt"></i> Quitter
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not user_groups %}
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Vous n'avez pas encore de groupes</h3>
+                        <p>Créez un groupe pour discuter avec plusieurs personnes simultanément.</p>
+                        <a href="{{ url_for('group.create_group') }}" class="btn primary">Créer un groupe</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
